@@ -114,7 +114,8 @@ pub async fn analyze(root: &Path) -> Result<Option<AnalyzerResult>> {
     // Add a test action for debugging output streaming
     result.scripts.push(DiscoveredScript {
         name: "echo-test".to_string(),
-        command: "echo 'Line 1'; sleep 0.5; echo 'Line 2'; sleep 0.5; echo 'Line 3'; echo 'Done!'".to_string(),
+        command: "echo 'Line 1'; sleep 0.5; echo 'Line 2'; sleep 0.5; echo 'Line 3'; echo 'Done!'"
+            .to_string(),
         source: ScriptSource::Detected,
         category: ScriptCategory::Utility,
         description: Some("Test output streaming".to_string()),

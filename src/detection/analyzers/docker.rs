@@ -38,7 +38,11 @@ pub async fn analyze(root: &Path) -> Result<Option<AnalyzerResult>> {
         service_names = yaml
             .get("services")
             .and_then(|s| s.as_mapping())
-            .map(|m| m.keys().filter_map(|k| k.as_str().map(String::from)).collect())
+            .map(|m| {
+                m.keys()
+                    .filter_map(|k| k.as_str().map(String::from))
+                    .collect()
+            })
             .unwrap_or_default();
 
         // Parse services

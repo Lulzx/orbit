@@ -21,12 +21,20 @@ pub enum Event {
     SlowTick, // Background refresh (1Hz)
 
     // Async completion events
-    ProcessOutput { id: uuid::Uuid, data: Vec<u8> },
-    ProcessExited { id: uuid::Uuid, code: i32 },
+    ProcessOutput {
+        id: uuid::Uuid,
+        data: Vec<u8>,
+    },
+    ProcessExited {
+        id: uuid::Uuid,
+        code: i32,
+    },
     FileChanged(String),
 
     // Focus mode events
-    FocusTimerTick { remaining: u32 },
+    FocusTimerTick {
+        remaining: u32,
+    },
     FocusModeEnded,
 
     // Notifications

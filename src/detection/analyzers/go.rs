@@ -13,7 +13,7 @@ pub async fn analyze(root: &Path) -> Result<Option<AnalyzerResult>> {
     }
 
     let content = tokio::fs::read_to_string(&go_mod_path).await?;
-    
+
     // Extract module name
     let module_name = content
         .lines()

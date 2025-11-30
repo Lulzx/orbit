@@ -92,7 +92,7 @@ async fn parse_makefile(root: &Path) -> Result<Option<Vec<DiscoveredScript>>> {
                 .filter(|s| !s.contains('\t') && !s.starts_with('#') && !s.starts_with('.'))
         }) {
             let target = target.trim();
-            
+
             // Skip internal targets and empty lines
             if target.is_empty()
                 || target.starts_with('.')
@@ -137,7 +137,10 @@ fn categorize_make_target(target: &str) -> ScriptCategory {
         ScriptCategory::Build
     } else if target_lower.contains("test") || target_lower.contains("check") {
         ScriptCategory::Test
-    } else if target_lower.contains("lint") || target_lower.contains("fmt") || target_lower.contains("format") {
+    } else if target_lower.contains("lint")
+        || target_lower.contains("fmt")
+        || target_lower.contains("format")
+    {
         ScriptCategory::Lint
     } else if target_lower.contains("deploy") || target_lower.contains("release") {
         ScriptCategory::Deploy
@@ -147,5 +150,48 @@ fn categorize_make_target(target: &str) -> ScriptCategory {
         ScriptCategory::Docker
     } else {
         ScriptCategory::Utility
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[tokio::test]
+    async fn parses_makefile_targets_and_categories() {
+        let dir = tempdir().unwrap();
+        let makefile = dir.path().join("Makefile");
+        std::fs::write(
+            &makefile,
+            r#"
+dev:
+	@echo "dev"
+
+build:
+	@echo "build"
+
+lint:
+	@echo "lint"
+        "#,
+        )
+        .unwrap();
+
+        let result = analyze(dir.path())
+            .await
+            .expect("analyze should succeed")
+            .expect("should detect makefile");
+
+        let mut scripts: Vec<_> = result
+            .scripts
+            .iter()
+            .map(|s| (s.name.clone(), s.category))
+            .collect();
+        scripts.sort_by(|a, b| a.0.cmp(&b.0));
+
+        assert_eq!(scripts.len(), 3);
+        assert!(scripts.contains(&("dev".to_string(), ScriptCategory::Dev)));
+        assert!(scripts.contains(&("build".to_string(), ScriptCategory::Build)));
+        assert!(scripts.contains(&("lint".to_string(), ScriptCategory::Lint)));
     }
 }

@@ -132,7 +132,10 @@ impl DockerClient {
                 .map(|p| PortMapping {
                     private_port: p.private_port,
                     public_port: p.public_port,
-                    protocol: p.typ.map(|t| t.to_string()).unwrap_or_else(|| "tcp".to_string()),
+                    protocol: p
+                        .typ
+                        .map(|t| t.to_string())
+                        .unwrap_or_else(|| "tcp".to_string()),
                 })
                 .collect();
 
@@ -176,10 +179,15 @@ impl DockerClient {
             - stats.precpu_stats.cpu_usage.total_usage as f64;
         let system_delta = stats.cpu_stats.system_cpu_usage.unwrap_or(0) as f64
             - stats.precpu_stats.system_cpu_usage.unwrap_or(0) as f64;
-        let num_cpus = stats
-            .cpu_stats
-            .online_cpus
-            .unwrap_or(stats.cpu_stats.cpu_usage.percpu_usage.as_ref().map(|v| v.len()).unwrap_or(1) as u64);
+        let num_cpus = stats.cpu_stats.online_cpus.unwrap_or(
+            stats
+                .cpu_stats
+                .cpu_usage
+                .percpu_usage
+                .as_ref()
+                .map(|v| v.len())
+                .unwrap_or(1) as u64,
+        );
 
         let cpu_percent = if system_delta > 0.0 && cpu_delta > 0.0 {
             let percent = (cpu_delta / system_delta) * num_cpus as f64 * 100.0;
@@ -231,26 +239,18 @@ impl DockerClient {
 
     /// Stop a container
     pub async fn stop_container(&self, container_id: &str) -> Result<()> {
-        self.docker
-            .stop_container(container_id, None)
-            .await?;
+        self.docker.stop_container(container_id, None).await?;
         Ok(())
     }
 
     /// Restart a container
     pub async fn restart_container(&self, container_id: &str) -> Result<()> {
-        self.docker
-            .restart_container(container_id, None)
-            .await?;
+        self.docker.restart_container(container_id, None).await?;
         Ok(())
     }
 
     /// Execute a command in a container
-    pub async fn exec_in_container(
-        &self,
-        container_id: &str,
-        cmd: Vec<&str>,
-    ) -> Result<String> {
+    pub async fn exec_in_container(&self, container_id: &str, cmd: Vec<&str>) -> Result<String> {
         let exec = self
             .docker
             .create_exec(
@@ -266,8 +266,9 @@ impl DockerClient {
 
         let mut output = String::new();
 
-        if let StartExecResults::Attached { output: mut stream, .. } =
-            self.docker.start_exec(&exec.id, None).await?
+        if let StartExecResults::Attached {
+            output: mut stream, ..
+        } = self.docker.start_exec(&exec.id, None).await?
         {
             while let Some(Ok(msg)) = stream.next().await {
                 output.push_str(&msg.to_string());
@@ -372,7 +373,10 @@ pub async fn print_status(_dir: &Path) -> Result<()> {
         let ports: String = container
             .ports
             .iter()
-            .filter_map(|p| p.public_port.map(|pub_p| format!("{}:{}", pub_p, p.private_port)))
+            .filter_map(|p| {
+                p.public_port
+                    .map(|pub_p| format!("{}:{}", pub_p, p.private_port))
+            })
             .collect::<Vec<_>>()
             .join(", ");
 
@@ -425,6 +429,9 @@ mod tests {
         assert_eq!(ContainerStatus::from("running"), ContainerStatus::Running);
         assert_eq!(ContainerStatus::from("RUNNING"), ContainerStatus::Running);
         assert_eq!(ContainerStatus::from("exited"), ContainerStatus::Exited);
-        assert_eq!(ContainerStatus::from("unknown_state"), ContainerStatus::Unknown);
+        assert_eq!(
+            ContainerStatus::from("unknown_state"),
+            ContainerStatus::Unknown
+        );
     }
 }

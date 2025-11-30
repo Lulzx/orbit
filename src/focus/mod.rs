@@ -101,10 +101,7 @@ impl FocusModeController {
         if let Some(ref sound) = config.ambient_sound {
             let url = sound.url().to_string();
             tokio::spawn(async move {
-                let _ = Command::new("open")
-                    .arg(&url)
-                    .output()
-                    .await;
+                let _ = Command::new("open").arg(&url).output().await;
             });
         }
 
@@ -131,7 +128,8 @@ impl FocusModeController {
         duration_minutes: u32,
         mut cancel_rx: tokio::sync::oneshot::Receiver<()>,
     ) {
-        let total_seconds = duration_minutes * 60;
+        let total_seconds = duration_minutes.saturating_mul(60);
+        let indefinite = total_seconds == 0;
         let mut elapsed = 0u32;
         let mut ticker = interval(Duration::from_secs(1));
 
@@ -139,11 +137,15 @@ impl FocusModeController {
             tokio::select! {
                 _ = ticker.tick() => {
                     elapsed += 1;
-                    let remaining = total_seconds.saturating_sub(elapsed);
-                    
+                    let remaining = if indefinite {
+                        0
+                    } else {
+                        total_seconds.saturating_sub(elapsed)
+                    };
+
                     let _ = event_tx.send(Event::FocusTimerTick { remaining });
-                    
-                    if elapsed >= total_seconds {
+
+                    if !indefinite && elapsed >= total_seconds {
                         let _ = event_tx.send(Event::FocusModeEnded);
                         break;
                     }
@@ -216,6 +218,10 @@ impl FocusSession {
     }
 
     pub fn format_remaining(&self) -> String {
+        if self.duration_minutes == 0 {
+            return "--:--".to_string();
+        }
+
         let remaining = self.remaining_seconds();
         let minutes = remaining / 60;
         let seconds = remaining % 60;
@@ -317,7 +323,14 @@ pub async fn enable_dnd() -> Result<()> {
 
     // Use defaults write (more reliable)
     let _ = Command::new("defaults")
-        .args(["-currentHost", "write", "com.apple.notificationcenterui", "doNotDisturb", "-boolean", "true"])
+        .args([
+            "-currentHost",
+            "write",
+            "com.apple.notificationcenterui",
+            "doNotDisturb",
+            "-boolean",
+            "true",
+        ])
         .output()
         .await?;
 
@@ -333,7 +346,14 @@ pub async fn enable_dnd() -> Result<()> {
 /// Disable macOS Do Not Disturb
 pub async fn disable_dnd() -> Result<()> {
     let _ = Command::new("defaults")
-        .args(["-currentHost", "write", "com.apple.notificationcenterui", "doNotDisturb", "-boolean", "false"])
+        .args([
+            "-currentHost",
+            "write",
+            "com.apple.notificationcenterui",
+            "doNotDisturb",
+            "-boolean",
+            "false",
+        ])
         .output()
         .await?;
 
@@ -385,10 +405,7 @@ pub async fn play_ambient_sound(sound: &AmbientSound) -> Result<()> {
     }
 
     // Fallback: Open in browser
-    Command::new("open")
-        .arg(&url)
-        .output()
-        .await?;
+    Command::new("open").arg(&url).output().await?;
 
     Ok(())
 }
@@ -426,10 +443,7 @@ pub async fn play_sound(sound: &str) -> Result<()> {
         _ => "/System/Library/Sounds/Glass.aiff",
     };
 
-    Command::new("afplay")
-        .arg(sound_file)
-        .output()
-        .await?;
+    Command::new("afplay").arg(sound_file).output().await?;
 
     Ok(())
 }
@@ -501,6 +515,12 @@ mod tests {
 
         session.elapsed_seconds = 1425;
         assert_eq!(session.format_remaining(), "01:15");
+    }
+
+    #[test]
+    fn test_format_remaining_indefinite() {
+        let session = FocusSession::new(0);
+        assert_eq!(session.format_remaining(), "--:--");
     }
 
     #[test]

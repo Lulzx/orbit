@@ -33,10 +33,7 @@ pub enum AppMode {
     /// Secret input modal
     SecretInput { key: String },
     /// Confirmation dialog
-    Confirm {
-        message: String,
-        action_id: String,
-    },
+    Confirm { message: String, action_id: String },
 }
 
 impl Default for AppMode {
@@ -437,5 +434,54 @@ impl Clone for StateStore {
             state: Arc::clone(&self.state),
             change_tx: self.change_tx.clone(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::actions::{Action, ActionCategory, ActionSource};
+
+    fn sample_action(id: &str, name: &str) -> Action {
+        Action {
+            id: id.to_string(),
+            name: name.to_string(),
+            command: format!("echo {}", name),
+            description: None,
+            category: ActionCategory::Custom,
+            source: ActionSource::Detected,
+            keybinding: None,
+            requires_confirm: false,
+            env_required: vec![],
+            working_dir: None,
+        }
+    }
+
+    #[test]
+    fn action_filter_matches_and_resets_selection() {
+        let mut panel = ActionPanelState::default();
+        panel.actions = vec![
+            sample_action("1", "build"),
+            sample_action("2", "dev server"),
+            sample_action("3", "test"),
+        ];
+
+        panel.update_filter("dev".to_string());
+        assert_eq!(panel.filtered_indices, vec![1]);
+        assert_eq!(panel.selected_index, 0, "selection should reset on filter");
+        assert_eq!(
+            panel.selected_action().map(|a| a.name.clone()).as_deref(),
+            Some("dev server")
+        );
+    }
+
+    #[test]
+    fn action_filter_handles_no_matches() {
+        let mut panel = ActionPanelState::default();
+        panel.actions = vec![sample_action("1", "build")];
+
+        panel.update_filter("deploy".to_string());
+        assert!(panel.filtered_indices.is_empty());
+        assert!(panel.selected_action().is_none());
     }
 }

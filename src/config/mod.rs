@@ -284,7 +284,7 @@ impl ProjectConfig {
 /// Initialize a new project configuration
 pub fn init_project_config(dir: &Path, force: bool) -> Result<()> {
     let path = dir.join(".orbit.toml");
-    
+
     if path.exists() && !force {
         anyhow::bail!("Configuration already exists. Use --force to overwrite.");
     }

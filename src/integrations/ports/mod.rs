@@ -17,6 +17,16 @@ pub struct ExpectedPort {
     pub service_name: String,
 }
 
+impl From<crate::detection::ExpectedPort> for ExpectedPort {
+    fn from(value: crate::detection::ExpectedPort) -> Self {
+        Self {
+            port: value.port,
+            source: value.source,
+            service_name: value.service_name,
+        }
+    }
+}
+
 /// Active port information
 #[derive(Debug, Clone)]
 pub struct ActivePort {
@@ -194,10 +204,7 @@ pub async fn get_process_on_port(port: u16) -> Result<Option<(u32, String)>> {
 }
 
 /// Detect port conflicts between expected and active ports
-pub fn detect_conflicts(
-    expected: &[ExpectedPort],
-    active: &[ActivePort],
-) -> Vec<PortConflict> {
+pub fn detect_conflicts(expected: &[ExpectedPort], active: &[ActivePort]) -> Vec<PortConflict> {
     let mut conflicts = Vec::new();
 
     for exp in expected {
@@ -255,14 +262,14 @@ pub async fn print_port_status(detector: &ProjectDetector) -> Result<()> {
 /// Common development ports to scan
 pub const COMMON_DEV_PORTS: &[u16] = &[
     3000, 3001, 3002, 3003, // Common dev servers
-    4000, 4200, 4173,       // Angular, Vite preview
+    4000, 4200, 4173, // Angular, Vite preview
     5000, 5001, 5173, 5174, // Flask, Vite
     8000, 8080, 8081, 8888, // Common HTTP servers
-    9000, 9090,             // Various services
-    27017,                  // MongoDB
-    5432,                   // PostgreSQL
-    3306,                   // MySQL
-    6379,                   // Redis
+    9000, 9090,  // Various services
+    27017, // MongoDB
+    5432,  // PostgreSQL
+    3306,  // MySQL
+    6379,  // Redis
 ];
 
 /// Scan common development ports

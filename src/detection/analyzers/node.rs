@@ -13,9 +13,8 @@ use crate::detection::{
 };
 
 // Compile regex once at startup
-static PORT_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?:--port|PORT=|-p)\s*(\d+)").expect("Invalid port regex")
-});
+static PORT_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?:--port|PORT=|-p)\s*(\d+)").expect("Invalid port regex"));
 
 #[derive(Deserialize)]
 struct PackageJson {
@@ -158,14 +157,21 @@ fn categorize_script(name: &str, command: &str) -> ScriptCategory {
         ScriptCategory::Dev
     } else if name_lower.contains("build") || cmd_lower.contains("build") {
         ScriptCategory::Build
-    } else if name_lower.contains("test") || cmd_lower.contains("jest") || cmd_lower.contains("vitest")
+    } else if name_lower.contains("test")
+        || cmd_lower.contains("jest")
+        || cmd_lower.contains("vitest")
     {
         ScriptCategory::Test
-    } else if name_lower.contains("lint") || cmd_lower.contains("eslint") || cmd_lower.contains("prettier") {
+    } else if name_lower.contains("lint")
+        || cmd_lower.contains("eslint")
+        || cmd_lower.contains("prettier")
+    {
         ScriptCategory::Lint
     } else if name_lower.contains("deploy") {
         ScriptCategory::Deploy
-    } else if name_lower.contains("db") || name_lower.contains("migrate") || name_lower.contains("seed")
+    } else if name_lower.contains("db")
+        || name_lower.contains("migrate")
+        || name_lower.contains("seed")
     {
         ScriptCategory::Database
     } else if cmd_lower.contains("docker") {
@@ -186,4 +192,63 @@ fn extract_ports_from_command(command: &str) -> Vec<u16> {
     }
 
     ports
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[tokio::test]
+    async fn detects_node_project_with_ports_and_package_manager() {
+        let dir = tempdir().unwrap();
+        let pkg_json = serde_json::json!({
+            "name": "example-app",
+            "scripts": {
+                "dev": "next dev --port 5555"
+            },
+            "dependencies": {
+                "next": "14.0.0"
+            }
+        });
+        std::fs::write(
+            dir.path().join("package.json"),
+            serde_json::to_string_pretty(&pkg_json).unwrap(),
+        )
+        .unwrap();
+        // Force yarn detection
+        std::fs::write(dir.path().join("yarn.lock"), "").unwrap();
+
+        let result = analyze(dir.path())
+            .await
+            .expect("analyze should succeed")
+            .expect("should detect node project");
+
+        // Verify package manager & framework are recognized
+        match result.project_kind {
+            ProjectKind::Node {
+                package_manager,
+                framework,
+            } => {
+                assert_eq!(package_manager, PackageManager::Yarn);
+                assert!(matches!(framework, Some(NodeFramework::NextJs)));
+            }
+            other => panic!("unexpected project kind: {:?}", other),
+        }
+
+        // Script should run through yarn and carry detected port
+        let dev_script = result
+            .scripts
+            .iter()
+            .find(|s| s.name == "dev")
+            .expect("dev script present");
+        assert_eq!(dev_script.command, "yarn dev");
+        assert!(dev_script.ports.contains(&5555));
+
+        // Framework default port should be included as expected port
+        assert!(result
+            .expected_ports
+            .iter()
+            .any(|p| p.port == 3000 && p.service_name == "example-app"));
+    }
 }

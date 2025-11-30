@@ -14,11 +14,13 @@ use crate::actions::{ActionExecutor, ActionRegistry};
 use crate::config::Config;
 use crate::core::events::{Event, EventHandler, EventResult, KeyBindings};
 use crate::core::state::{
-    AppMode, AppState, FocusedPanel, LayoutPreset, NotificationLevel, OutputStream, StateStore,
+    AppMode, AppState, FocusedPanel, LayoutPreset, NotificationLevel, OutputStream, StateChange,
+    StateStore,
 };
 use crate::detection::ProjectDetector;
 use crate::focus::FocusModeController;
 use crate::integrations::docker::DockerClient;
+use crate::integrations::system::SystemMonitor;
 use crate::ui::renderer::Renderer;
 use crate::ui::theme::Theme;
 
@@ -27,6 +29,7 @@ pub struct App {
     state: StateStore,
     event_tx: mpsc::UnboundedSender<Event>,
     docker_client: Option<DockerClient>,
+    system_monitor: SystemMonitor,
     action_registry: Arc<ActionRegistry>,
     action_executor: ActionExecutor,
     focus_controller: Option<FocusModeController>,
@@ -62,11 +65,15 @@ impl App {
         // Initialize action executor
         let action_executor = ActionExecutor::new(working_dir.clone());
 
+        // System metrics collector
+        let system_monitor = SystemMonitor::new();
+
         Ok(Self {
             terminal,
             state,
             event_tx,
             docker_client,
+            system_monitor,
             action_registry,
             action_executor,
             focus_controller: None,
@@ -81,6 +88,11 @@ impl App {
 
         // Run initial project detection
         self.detect_project().await?;
+
+        // Prime background data before first render
+        self.refresh_metrics();
+        self.refresh_ports().await?;
+        self.refresh_docker().await?;
 
         // Spawn background tasks
         let (mut event_handler, event_tx) = EventHandler::new();
@@ -166,6 +178,14 @@ impl App {
                         })
                         .collect();
 
+                    // Expected ports for Port Scout
+                    s.panels.ports.expected_ports = project
+                        .ports
+                        .iter()
+                        .cloned()
+                        .map(crate::integrations::ports::ExpectedPort::from)
+                        .collect();
+
                     // Store project context
                     s.project = Some(project);
 
@@ -232,7 +252,9 @@ impl App {
                 Ok(EventResult::Continue)
             }
             Event::SlowTick => {
-                // Background refresh handled by dedicated tasks
+                self.refresh_metrics();
+                self.refresh_ports().await?;
+                self.refresh_docker().await?;
                 Ok(EventResult::Continue)
             }
             Event::FocusTimerTick { remaining } => {
@@ -289,7 +311,12 @@ impl App {
                 s.mode = AppMode::CommandPalette;
                 s.panels.actions.filter.clear();
                 s.panels.actions.update_filter(String::new());
-                ((), Some(crate::core::state::StateChange::ModeChanged(AppMode::CommandPalette)))
+                (
+                    (),
+                    Some(crate::core::state::StateChange::ModeChanged(
+                        AppMode::CommandPalette,
+                    )),
+                )
             });
             return Ok(EventResult::Continue);
         }
@@ -297,7 +324,10 @@ impl App {
         if KeyBindings::help().matches(&key) {
             self.state.update(|s| {
                 s.mode = AppMode::Help;
-                ((), Some(crate::core::state::StateChange::ModeChanged(AppMode::Help)))
+                (
+                    (),
+                    Some(crate::core::state::StateChange::ModeChanged(AppMode::Help)),
+                )
             });
             return Ok(EventResult::Continue);
         }
@@ -390,7 +420,12 @@ impl App {
                 s.mode = AppMode::Dashboard;
                 s.panels.actions.filter.clear();
                 s.panels.actions.update_filter(String::new());
-                ((), Some(crate::core::state::StateChange::ModeChanged(AppMode::Dashboard)))
+                (
+                    (),
+                    Some(crate::core::state::StateChange::ModeChanged(
+                        AppMode::Dashboard,
+                    )),
+                )
             });
             return Ok(EventResult::Continue);
         }
@@ -405,7 +440,12 @@ impl App {
                 s.mode = AppMode::Dashboard;
                 s.panels.actions.filter.clear();
                 s.panels.actions.update_filter(String::new());
-                ((), Some(crate::core::state::StateChange::ModeChanged(AppMode::Dashboard)))
+                (
+                    (),
+                    Some(crate::core::state::StateChange::ModeChanged(
+                        AppMode::Dashboard,
+                    )),
+                )
             });
             return Ok(EventResult::Continue);
         }
@@ -438,7 +478,10 @@ impl App {
                     let mut filter = s.panels.actions.filter.clone();
                     filter.push(c);
                     s.panels.actions.update_filter(filter);
-                    ((), Some(crate::core::state::StateChange::ActionFilterChanged))
+                    (
+                        (),
+                        Some(crate::core::state::StateChange::ActionFilterChanged),
+                    )
                 });
             }
             KeyCode::Backspace => {
@@ -446,7 +489,10 @@ impl App {
                     let mut filter = s.panels.actions.filter.clone();
                     filter.pop();
                     s.panels.actions.update_filter(filter);
-                    ((), Some(crate::core::state::StateChange::ActionFilterChanged))
+                    (
+                        (),
+                        Some(crate::core::state::StateChange::ActionFilterChanged),
+                    )
                 });
             }
             _ => {}
@@ -462,7 +508,12 @@ impl App {
         {
             self.state.update(|s| {
                 s.mode = AppMode::Dashboard;
-                ((), Some(crate::core::state::StateChange::ModeChanged(AppMode::Dashboard)))
+                (
+                    (),
+                    Some(crate::core::state::StateChange::ModeChanged(
+                        AppMode::Dashboard,
+                    )),
+                )
             });
         }
         Ok(EventResult::Continue)
@@ -494,13 +545,23 @@ impl App {
                 }
                 self.state.update(|s| {
                     s.mode = AppMode::Dashboard;
-                    ((), Some(crate::core::state::StateChange::ModeChanged(AppMode::Dashboard)))
+                    (
+                        (),
+                        Some(crate::core::state::StateChange::ModeChanged(
+                            AppMode::Dashboard,
+                        )),
+                    )
                 });
             }
             KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
                 self.state.update(|s| {
                     s.mode = AppMode::Dashboard;
-                    ((), Some(crate::core::state::StateChange::ModeChanged(AppMode::Dashboard)))
+                    (
+                        (),
+                        Some(crate::core::state::StateChange::ModeChanged(
+                            AppMode::Dashboard,
+                        )),
+                    )
                 });
             }
             _ => {}
@@ -621,7 +682,7 @@ impl App {
             let state = self.state.clone();
             let executor = ActionExecutor::new(self.working_dir.clone());
             let event_tx = self.event_tx.clone();
-            
+
             // Spawn the entire execution in a background task
             tokio::spawn(async move {
                 // Spawn output collector
@@ -656,7 +717,7 @@ impl App {
                     Ok(result) => {
                         // Wait for output collector to finish
                         let _ = output_handle.await;
-                        
+
                         let msg = if result.success {
                             format!("Completed in {}ms", result.duration_ms)
                         } else {
@@ -677,10 +738,9 @@ impl App {
                     }
                     Err(e) => {
                         state.update(|s| {
-                            s.panels.output.push(
-                                format!("Failed to execute: {}", e),
-                                OutputStream::System,
-                            );
+                            s.panels
+                                .output
+                                .push(format!("Failed to execute: {}", e), OutputStream::System);
                             s.add_notification(
                                 format!("Action failed: {}", e),
                                 NotificationLevel::Error,
@@ -728,7 +788,10 @@ impl App {
             "system:help" => {
                 self.state.update(|s| {
                     s.mode = AppMode::Help;
-                    ((), Some(crate::core::state::StateChange::ModeChanged(AppMode::Help)))
+                    (
+                        (),
+                        Some(crate::core::state::StateChange::ModeChanged(AppMode::Help)),
+                    )
                 });
             }
             _ => {
@@ -759,16 +822,20 @@ impl App {
         };
 
         let duration = config.duration_minutes;
+        let ambient_enabled = config.ambient_sound.is_some();
         let controller = FocusModeController::enter(config, self.event_tx.clone()).await?;
         self.focus_controller = Some(controller);
 
         self.state.update(|s| {
             s.mode = AppMode::FocusMode {
-                remaining_seconds: duration * 60,
-                ambient_playing: true,
+                remaining_seconds: if duration == 0 { 0 } else { duration * 60 },
+                ambient_playing: ambient_enabled,
             };
             s.layout.preset = LayoutPreset::FocusMode;
-            ((), Some(crate::core::state::StateChange::ModeChanged(s.mode.clone())))
+            (
+                (),
+                Some(crate::core::state::StateChange::ModeChanged(s.mode.clone())),
+            )
         });
 
         Ok(())
@@ -782,8 +849,94 @@ impl App {
         self.state.update(|s| {
             s.mode = AppMode::Dashboard;
             s.layout.preset = LayoutPreset::Standard;
-            ((), Some(crate::core::state::StateChange::ModeChanged(AppMode::Dashboard)))
+            (
+                (),
+                Some(crate::core::state::StateChange::ModeChanged(
+                    AppMode::Dashboard,
+                )),
+            )
         });
+
+        Ok(())
+    }
+
+    fn refresh_metrics(&mut self) {
+        let snapshot = self.system_monitor.sample();
+        self.state.update(|s| {
+            s.panels.metrics.push_cpu(snapshot.cpu_percent);
+            s.panels.metrics.memory_used_mb = snapshot.memory_used_mb;
+            s.panels.metrics.memory_total_mb = snapshot.memory_total_mb;
+            s.panels.metrics.disk_used_percent = snapshot.disk_used_percent;
+            ((), Some(StateChange::MetricsUpdated))
+        });
+    }
+
+    async fn refresh_ports(&mut self) -> Result<()> {
+        self.state.update(|s| {
+            s.panels.ports.loading = true;
+            ((), None)
+        });
+
+        let expected = self.state.read().panels.ports.expected_ports.clone();
+
+        match crate::integrations::ports::scan_active_ports().await {
+            Ok(active_ports) => {
+                let conflicts =
+                    crate::integrations::ports::detect_conflicts(&expected, &active_ports);
+                self.state.update(|s| {
+                    s.panels.ports.active_ports = active_ports;
+                    s.panels.ports.conflicts = conflicts;
+                    s.panels.ports.loading = false;
+                    ((), Some(StateChange::PortsUpdated))
+                });
+            }
+            Err(e) => {
+                self.state.update(|s| {
+                    s.panels
+                        .output
+                        .push(format!("Port scan failed: {}", e), OutputStream::System);
+                    s.panels.ports.loading = false;
+                    ((), None)
+                });
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn refresh_docker(&mut self) -> Result<()> {
+        let Some(client) = self.docker_client.as_ref() else {
+            return Ok(());
+        };
+
+        self.state.update(|s| {
+            s.panels.docker.loading = true;
+            s.panels.docker.error = None;
+            ((), None)
+        });
+
+        match client.list_containers(true).await {
+            Ok(mut containers) => {
+                for container in &mut containers {
+                    if let Ok(stats) = client.get_stats(&container.id).await {
+                        container.stats = Some(stats);
+                    }
+                }
+
+                self.state.update(|s| {
+                    s.panels.docker.containers = containers;
+                    s.panels.docker.loading = false;
+                    ((), Some(StateChange::ContainersUpdated))
+                });
+            }
+            Err(e) => {
+                self.state.update(|s| {
+                    s.panels.docker.loading = false;
+                    s.panels.docker.error = Some(e.to_string());
+                    ((), None)
+                });
+            }
+        }
 
         Ok(())
     }

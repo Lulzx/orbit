@@ -280,7 +280,7 @@ fn execute_with_pty(
 
     // Read from the master (which receives all output from the PTY)
     let reader = pair.master.try_clone_reader()?;
-    
+
     // Spawn a thread to read output so we don't block on wait()
     let output_tx_clone = output_tx.clone();
     let read_thread = std::thread::spawn(move || {
@@ -291,9 +291,14 @@ fn execute_with_pty(
                     // Strip ANSI escape codes for cleaner output display
                     let clean_content = strip_ansi_codes(&content);
                     // Send even if empty to preserve blank lines in output
-                    if output_tx_clone.blocking_send(OutputLine::Stdout(
-                        if clean_content.is_empty() { content } else { clean_content }
-                    )).is_err() {
+                    if output_tx_clone
+                        .blocking_send(OutputLine::Stdout(if clean_content.is_empty() {
+                            content
+                        } else {
+                            clean_content
+                        }))
+                        .is_err()
+                    {
                         break;
                     }
                 }
@@ -327,7 +332,7 @@ fn strip_ansi_codes(s: &str) -> String {
             // Skip escape sequence
             if chars.peek() == Some(&'[') {
                 chars.next(); // consume '['
-                // Skip until we hit a letter (end of escape sequence)
+                              // Skip until we hit a letter (end of escape sequence)
                 while let Some(&next) = chars.peek() {
                     chars.next();
                     if next.is_ascii_alphabetic() {
@@ -478,7 +483,7 @@ impl ActionRegistry {
 
     pub fn from_project(project: &crate::detection::ProjectContext) -> Self {
         let mut actions = system_actions();
-        
+
         // Add project scripts as actions
         for script in &project.scripts {
             actions.push(Action::from_script(script.clone()));
@@ -569,7 +574,11 @@ mod tests {
         let result = exec.await.expect("execute action");
         let lines = collector.await.expect("collect output");
 
-        assert!(result.success, "action should succeed: {:?}", result.exit_code);
+        assert!(
+            result.success,
+            "action should succeed: {:?}",
+            result.exit_code
+        );
         assert!(
             lines.iter().any(|l| l.contains("one")) && lines.iter().any(|l| l.contains("two")),
             "expected to capture stdout and stderr lines, got {:?}",

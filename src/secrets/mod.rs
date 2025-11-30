@@ -3,7 +3,9 @@
 #![allow(dead_code)]
 
 use anyhow::Result;
-use security_framework::passwords::{delete_generic_password, get_generic_password, set_generic_password};
+use security_framework::passwords::{
+    delete_generic_password, get_generic_password, set_generic_password,
+};
 use std::collections::HashMap;
 use std::io::{self, Write};
 use std::path::Path;
@@ -238,7 +240,11 @@ pub async fn get_project_env(project_dir: &Path) -> Result<HashMap<String, (Stri
                 }
                 if let Some((key, value)) = line.split_once('=') {
                     let key = key.trim().to_string();
-                    let value = value.trim().trim_matches('"').trim_matches('\'').to_string();
+                    let value = value
+                        .trim()
+                        .trim_matches('"')
+                        .trim_matches('\'')
+                        .to_string();
                     env.insert(key, (value, EnvSource::DotEnv));
                 }
             }
