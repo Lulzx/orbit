@@ -1,0 +1,9 @@
+[project]
+name = "orbit"
+description = "Test project"
+
+[[actions.custom]]
+name = "test-output"
+command = "./test_cmd.sh"
+description = "Test output streaming"
+category = "test"
