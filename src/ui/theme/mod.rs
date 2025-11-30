@@ -220,7 +220,9 @@ impl Theme {
 
     fn from_colors(name: &str, colors: ThemeColors) -> Self {
         let styles = ThemeStyles {
-            header: Style::default().bg(colors.bg_secondary).fg(colors.fg_primary),
+            header: Style::default()
+                .bg(colors.bg_secondary)
+                .fg(colors.fg_primary),
             footer: Style::default().bg(colors.bg_secondary).fg(colors.fg_muted),
             panel_title: Style::default()
                 .fg(colors.accent_primary)

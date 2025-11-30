@@ -8,8 +8,8 @@ use ratatui::{
     widgets::{Block, Borders, Clear, Widget},
 };
 
-use crate::core::state::AppState;
 use crate::actions::ActionCategory;
+use crate::core::state::AppState;
 use crate::ui::theme::Theme;
 
 pub struct ActionPalette<'a> {
@@ -44,7 +44,10 @@ impl<'a> Widget for ActionPalette<'a> {
 
         // Main container
         let block = Block::default()
-            .title(Span::styled(" ⚡ Quick Actions ", self.theme.styles.panel_title))
+            .title(Span::styled(
+                " ⚡ Quick Actions ",
+                self.theme.styles.panel_title,
+            ))
             .borders(Borders::ALL)
             .border_style(self.theme.styles.panel_border_focused)
             .style(Style::default().bg(self.theme.colors.bg_secondary));
@@ -89,8 +92,7 @@ impl<'a> Widget for ActionPalette<'a> {
         let sep_y = chunks[0].y + 1;
         for x in chunks[0].x..chunks[0].x + chunks[0].width {
             if let Some(cell) = buf.cell_mut((x, sep_y)) {
-                cell.set_char('─')
-                    .set_style(self.theme.styles.panel_border);
+                cell.set_char('─').set_style(self.theme.styles.panel_border);
             }
         }
 
@@ -133,10 +135,7 @@ impl<'a> Widget for ActionPalette<'a> {
 
             // Highlight matching parts in name
             let name = &action.name;
-            let desc = action
-                .description
-                .as_deref()
-                .unwrap_or(&action.command);
+            let desc = action.description.as_deref().unwrap_or(&action.command);
 
             let max_name_len = 24;
             let max_desc_len = results_area.width.saturating_sub(max_name_len as u16 + 8) as usize;
@@ -156,7 +155,9 @@ impl<'a> Widget for ActionPalette<'a> {
                 ),
                 Span::styled(
                     desc_display,
-                    style.fg(self.theme.colors.fg_muted).remove_modifier(Modifier::BOLD),
+                    style
+                        .fg(self.theme.colors.fg_muted)
+                        .remove_modifier(Modifier::BOLD),
                 ),
             ]);
 

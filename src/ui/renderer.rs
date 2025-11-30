@@ -122,7 +122,11 @@ impl Renderer {
         // Format time
         let minutes = remaining_seconds / 60;
         let seconds = remaining_seconds % 60;
-        let time_display = format!("{:02}:{:02}", minutes, seconds);
+        let time_display = if remaining_seconds == 0 {
+            "--:--".to_string()
+        } else {
+            format!("{:02}:{:02}", minutes, seconds)
+        };
 
         let block = Block::default()
             .title(Span::styled(" 🎯 Focus Mode ", theme.styles.panel_title))

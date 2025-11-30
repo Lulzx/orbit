@@ -37,13 +37,15 @@ impl<'a> Widget for MetricsPanel<'a> {
 
         // CPU line with sparkline
         if inner.height >= 1 {
-            let cpu_data: Vec<u64> = metrics.cpu_history
+            let cpu_data: Vec<u64> = metrics
+                .cpu_history
                 .iter()
                 .map(|&v| (v * 100.0) as u64)
                 .collect();
 
             let label = format!("CPU {:>3.0}% ", metrics.cpu_percent);
-            let label_span = Span::styled(&label, Style::default().fg(self.theme.colors.fg_secondary));
+            let label_span =
+                Span::styled(&label, Style::default().fg(self.theme.colors.fg_secondary));
             buf.set_span(inner.x, inner.y, &label_span, label.len() as u16);
 
             if !cpu_data.is_empty() {
@@ -58,16 +60,30 @@ impl<'a> Widget for MetricsPanel<'a> {
 
                     // Draw simple bar representation
                     let bar_width = sparkline_width as usize;
-                    let recent: Vec<u64> = cpu_data.iter().rev().take(bar_width).rev().cloned().collect();
-                    
+                    let recent: Vec<u64> = cpu_data
+                        .iter()
+                        .rev()
+                        .take(bar_width)
+                        .rev()
+                        .cloned()
+                        .collect();
+
                     let bar_chars = "▁▂▃▄▅▆▇█";
-                    let bar: String = recent.iter().map(|&v| {
-                        let idx = ((v as usize * 7) / 100).min(7);
-                        bar_chars.chars().nth(idx).unwrap_or('▁')
-                    }).collect();
+                    let bar: String = recent
+                        .iter()
+                        .map(|&v| {
+                            let idx = ((v as usize * 7) / 100).min(7);
+                            bar_chars.chars().nth(idx).unwrap_or('▁')
+                        })
+                        .collect();
 
                     let bar_span = Span::styled(bar, self.theme.styles.sparkline);
-                    buf.set_span(sparkline_area.x, sparkline_area.y, &bar_span, sparkline_area.width);
+                    buf.set_span(
+                        sparkline_area.x,
+                        sparkline_area.y,
+                        &bar_span,
+                        sparkline_area.width,
+                    );
                 }
             }
         }
@@ -92,7 +108,10 @@ impl<'a> Widget for MetricsPanel<'a> {
                 metrics.memory_total_mb / 1024
             );
 
-            let mem_span = Span::styled(mem_label, Style::default().fg(self.theme.colors.fg_secondary));
+            let mem_span = Span::styled(
+                mem_label,
+                Style::default().fg(self.theme.colors.fg_secondary),
+            );
             buf.set_span(inner.x, inner.y + 1, &mem_span, inner.width);
         }
 
@@ -105,7 +124,10 @@ impl<'a> Widget for MetricsPanel<'a> {
             let bar: String = "█".repeat(filled) + &"░".repeat(disk_bar_width - filled);
 
             let disk_label = format!("DSK {} {:>3.0}%", bar, disk_percent);
-            let disk_span = Span::styled(disk_label, Style::default().fg(self.theme.colors.fg_secondary));
+            let disk_span = Span::styled(
+                disk_label,
+                Style::default().fg(self.theme.colors.fg_secondary),
+            );
             buf.set_span(inner.x, inner.y + 2, &disk_span, inner.width);
         }
     }

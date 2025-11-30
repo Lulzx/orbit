@@ -22,7 +22,12 @@ impl<'a> ContainerPanel<'a> {
         Self { state, theme }
     }
 
-    fn render_container_row(&self, container: &crate::integrations::docker::ContainerInfo, selected: bool, _width: u16) -> Line<'a> {
+    fn render_container_row(
+        &self,
+        container: &crate::integrations::docker::ContainerInfo,
+        selected: bool,
+        _width: u16,
+    ) -> Line<'a> {
         let status_icon = match container.status {
             ContainerStatus::Running => "●",
             ContainerStatus::Paused => "◐",
@@ -41,7 +46,9 @@ impl<'a> ContainerPanel<'a> {
         };
 
         let name = truncate(&container.name, 12);
-        let (cpu_percent, memory_mb) = container.stats.as_ref()
+        let (cpu_percent, memory_mb) = container
+            .stats
+            .as_ref()
             .map(|s| (s.cpu_percent, s.memory_usage_mb as u64))
             .unwrap_or((0.0, 0));
         let cpu = format!("{:>3.0}%", cpu_percent);

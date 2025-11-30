@@ -27,12 +27,18 @@ impl<'a> Widget for Header<'a> {
         // Background
         buf.set_style(area, self.theme.styles.header);
 
-        let project_name = self.state.project.as_ref()
+        let project_name = self
+            .state
+            .project
+            .as_ref()
             .map(|p| p.name.as_str())
             .unwrap_or("No project");
 
         // Git info
-        let git_info = self.state.project.as_ref()
+        let git_info = self
+            .state
+            .project
+            .as_ref()
             .and_then(|p| p.git_info.as_ref())
             .map(|g| {
                 let mut parts = vec![g.branch.clone()];
@@ -50,9 +56,13 @@ impl<'a> Widget for Header<'a> {
             .unwrap_or_default();
 
         // Project types
-        let types: Vec<String> = self.state.project.as_ref()
+        let types: Vec<String> = self
+            .state
+            .project
+            .as_ref()
             .map(|p| {
-                p.types.iter()
+                p.types
+                    .iter()
                     .filter(|t| t.primary)
                     .map(|t| format_project_kind(&t.kind))
                     .collect()
@@ -63,7 +73,8 @@ impl<'a> Widget for Header<'a> {
         // Docker status
         let docker_status = {
             let containers = &self.state.panels.docker.containers;
-            let running = containers.iter()
+            let running = containers
+                .iter()
                 .filter(|c| c.status == crate::integrations::docker::ContainerStatus::Running)
                 .count();
             let total = containers.len();
@@ -92,37 +103,67 @@ impl<'a> Widget for Header<'a> {
 
         // Build header line
         let mut spans = vec![
-            Span::styled(" 🛰️ ORBIT ", Style::default()
-                .fg(self.theme.colors.accent_primary)
-                .add_modifier(ratatui::style::Modifier::BOLD)),
+            Span::styled(
+                " 🛰️ ORBIT ",
+                Style::default()
+                    .fg(self.theme.colors.accent_primary)
+                    .add_modifier(ratatui::style::Modifier::BOLD),
+            ),
             Span::styled("│ ", Style::default().fg(self.theme.colors.fg_muted)),
-            Span::styled(project_name, Style::default().fg(self.theme.colors.fg_primary)),
+            Span::styled(
+                project_name,
+                Style::default().fg(self.theme.colors.fg_primary),
+            ),
         ];
 
         if !git_info.is_empty() {
-            spans.push(Span::styled(" │ ", Style::default().fg(self.theme.colors.fg_muted)));
-            spans.push(Span::styled(git_info, Style::default().fg(self.theme.colors.accent_secondary)));
+            spans.push(Span::styled(
+                " │ ",
+                Style::default().fg(self.theme.colors.fg_muted),
+            ));
+            spans.push(Span::styled(
+                git_info,
+                Style::default().fg(self.theme.colors.accent_secondary),
+            ));
         }
 
         if !types_str.is_empty() {
-            spans.push(Span::styled(" │ ", Style::default().fg(self.theme.colors.fg_muted)));
-            spans.push(Span::styled(types_str, Style::default().fg(self.theme.colors.info)));
+            spans.push(Span::styled(
+                " │ ",
+                Style::default().fg(self.theme.colors.fg_muted),
+            ));
+            spans.push(Span::styled(
+                types_str,
+                Style::default().fg(self.theme.colors.info),
+            ));
         }
 
         if !docker_status.is_empty() {
-            spans.push(Span::styled(" │ ", Style::default().fg(self.theme.colors.fg_muted)));
-            spans.push(Span::styled(docker_status, Style::default().fg(self.theme.colors.success)));
+            spans.push(Span::styled(
+                " │ ",
+                Style::default().fg(self.theme.colors.fg_muted),
+            ));
+            spans.push(Span::styled(
+                docker_status,
+                Style::default().fg(self.theme.colors.success),
+            ));
         }
 
         if !port_status.is_empty() {
-            spans.push(Span::styled(" │ ", Style::default().fg(self.theme.colors.fg_muted)));
-            spans.push(Span::styled(port_status, Style::default().fg(self.theme.colors.info)));
+            spans.push(Span::styled(
+                " │ ",
+                Style::default().fg(self.theme.colors.fg_muted),
+            ));
+            spans.push(Span::styled(
+                port_status,
+                Style::default().fg(self.theme.colors.info),
+            ));
         }
 
         // Calculate right side position for time
         let left_line = Line::from(spans);
         let _left_width = left_line.width();
-        
+
         buf.set_line(area.x, area.y, &left_line, area.width);
 
         // Render time on the right

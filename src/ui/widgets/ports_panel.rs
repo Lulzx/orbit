@@ -81,7 +81,10 @@ impl<'a> Widget for PortsPanel<'a> {
         display_items.sort_by_key(|i| i.port);
 
         if display_items.is_empty() {
-            let span = Span::styled("No ports detected", Style::default().fg(self.theme.colors.fg_muted));
+            let span = Span::styled(
+                "No ports detected",
+                Style::default().fg(self.theme.colors.fg_muted),
+            );
             buf.set_span(inner.x + 1, inner.y, &span, inner.width.saturating_sub(2));
             return;
         }
@@ -109,7 +112,10 @@ impl<'a> Widget for PortsPanel<'a> {
 
             let line = Line::from(vec![
                 Span::styled(indicator, base_style),
-                Span::styled(format!(" :{:<5} ", item.port), Style::default().fg(self.theme.colors.accent_primary)),
+                Span::styled(
+                    format!(" :{:<5} ", item.port),
+                    Style::default().fg(self.theme.colors.accent_primary),
+                ),
                 Span::styled(format!("{} ", icon), icon_style),
                 Span::styled(service, base_style),
             ]);

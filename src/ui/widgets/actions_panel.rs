@@ -8,8 +8,8 @@ use ratatui::{
     widgets::{Block, Borders, Widget},
 };
 
-use crate::core::state::{AppState, FocusedPanel};
 use crate::actions::ActionCategory;
+use crate::core::state::{AppState, FocusedPanel};
 use crate::ui::theme::Theme;
 
 pub struct ActionsPanel<'a> {
@@ -47,7 +47,10 @@ impl<'a> Widget for ActionsPanel<'a> {
         };
 
         let block = Block::default()
-            .title(Span::styled(" QUICK ACTIONS ", self.theme.styles.panel_title))
+            .title(Span::styled(
+                " QUICK ACTIONS ",
+                self.theme.styles.panel_title,
+            ))
             .borders(Borders::ALL)
             .border_style(border_style)
             .style(Style::default().bg(self.theme.colors.bg_primary));
@@ -86,14 +89,19 @@ impl<'a> Widget for ActionsPanel<'a> {
             let indicator = if is_selected { "▸" } else { " " };
             let icon = Self::category_icon(&action.category);
             let name = truncate(&action.name, 20);
-            let desc = action.description.as_deref()
+            let desc = action
+                .description
+                .as_deref()
                 .or(Some(&action.command))
                 .map(|s| truncate(s, inner.width.saturating_sub(28) as usize))
                 .unwrap_or_default();
 
             let line = Line::from(vec![
                 Span::styled(indicator, base_style),
-                Span::styled(format!(" {} ", icon), Style::default().fg(self.theme.colors.accent_secondary)),
+                Span::styled(
+                    format!(" {} ", icon),
+                    Style::default().fg(self.theme.colors.accent_secondary),
+                ),
                 Span::styled(format!("{:<20} ", name), base_style),
                 Span::styled(desc, Style::default().fg(self.theme.colors.fg_muted)),
             ]);

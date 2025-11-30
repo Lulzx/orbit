@@ -36,23 +36,12 @@ impl<'a> Widget for Footer<'a> {
                 ("?", "Help"),
                 ("q", "Quit"),
             ],
-            AppMode::CommandPalette => vec![
-                ("↑/↓", "Navigate"),
-                ("Enter", "Execute"),
-                ("Esc", "Close"),
-            ],
-            AppMode::Help => vec![
-                ("Esc", "Close"),
-                ("q", "Close"),
-            ],
-            AppMode::FocusMode { .. } => vec![
-                ("Esc", "Exit Focus"),
-            ],
-            AppMode::Confirm { .. } => vec![
-                ("y", "Confirm"),
-                ("n", "Cancel"),
-                ("Esc", "Cancel"),
-            ],
+            AppMode::CommandPalette => {
+                vec![("↑/↓", "Navigate"), ("Enter", "Execute"), ("Esc", "Close")]
+            }
+            AppMode::Help => vec![("Esc", "Close"), ("q", "Close")],
+            AppMode::FocusMode { .. } => vec![("Esc", "Exit Focus")],
+            AppMode::Confirm { .. } => vec![("y", "Confirm"), ("n", "Cancel"), ("Esc", "Cancel")],
             _ => vec![],
         };
 

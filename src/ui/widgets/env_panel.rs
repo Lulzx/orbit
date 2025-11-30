@@ -58,7 +58,10 @@ impl<'a> Widget for EnvPanel<'a> {
         let show_values = env.show_values;
 
         if env.variables.is_empty() {
-            let span = Span::styled("No environment variables", Style::default().fg(self.theme.colors.fg_muted));
+            let span = Span::styled(
+                "No environment variables",
+                Style::default().fg(self.theme.colors.fg_muted),
+            );
             buf.set_span(inner.x + 1, inner.y, &span, inner.width.saturating_sub(2));
             return;
         }
@@ -76,7 +79,7 @@ impl<'a> Widget for EnvPanel<'a> {
             };
 
             let indicator = if is_selected { "▸" } else { " " };
-            
+
             let (status_icon, status_style) = match var.source {
                 EnvSource::Shell => ("✓", self.theme.styles.status_running),
                 EnvSource::DotEnv => ("●", Style::default().fg(self.theme.colors.info)),
@@ -92,13 +95,17 @@ impl<'a> Widget for EnvPanel<'a> {
             };
 
             let name = truncate(&var.name, 16);
-            
+
             let value_display = if var.source == EnvSource::Missing {
                 "".to_string()
             } else if show_values && !var.is_secret {
-                var.value.as_deref().map(|v| truncate(v, 20)).unwrap_or_default()
+                var.value
+                    .as_deref()
+                    .map(|v| truncate(v, 20))
+                    .unwrap_or_default()
             } else {
-                var.value.as_deref()
+                var.value
+                    .as_deref()
                     .map(Self::redact_value)
                     .unwrap_or_default()
             };
@@ -106,9 +113,15 @@ impl<'a> Widget for EnvPanel<'a> {
             let line = Line::from(vec![
                 Span::styled(indicator, base_style),
                 Span::styled(format!(" {:<16} ", name), base_style),
-                Span::styled(format!("{:<20} ", value_display), self.theme.styles.secret_redacted),
+                Span::styled(
+                    format!("{:<20} ", value_display),
+                    self.theme.styles.secret_redacted,
+                ),
                 Span::styled(format!("{} ", status_icon), status_style),
-                Span::styled(source_label, Style::default().fg(self.theme.colors.fg_muted)),
+                Span::styled(
+                    source_label,
+                    Style::default().fg(self.theme.colors.fg_muted),
+                ),
             ]);
 
             buf.set_line(inner.x, inner.y + i as u16, &line, inner.width);

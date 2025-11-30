@@ -25,7 +25,10 @@ impl<'a> Widget for HelpOverlay<'a> {
         Clear.render(area, buf);
 
         let block = Block::default()
-            .title(Span::styled(" 🛰️ Orbit Help ", self.theme.styles.panel_title))
+            .title(Span::styled(
+                " 🛰️ Orbit Help ",
+                self.theme.styles.panel_title,
+            ))
             .borders(Borders::ALL)
             .border_style(self.theme.styles.panel_border_focused)
             .style(Style::default().bg(self.theme.colors.bg_secondary));
@@ -34,27 +37,39 @@ impl<'a> Widget for HelpOverlay<'a> {
         block.render(area, buf);
 
         let keybindings = [
-            ("General", vec![
-                ("q", "Quit Orbit"),
-                ("?", "Toggle help"),
-                ("r", "Refresh project detection"),
-                ("Tab", "Cycle panel focus"),
-            ]),
-            ("Navigation", vec![
-                ("↑/k", "Move up"),
-                ("↓/j", "Move down"),
-                ("Enter", "Execute selected action"),
-                ("Space", "Open command palette"),
-            ]),
-            ("Panels", vec![
-                ("d", "Toggle Docker panel"),
-                ("p", "Toggle Ports panel"),
-                ("e", "Toggle Environment panel"),
-            ]),
-            ("Modes", vec![
-                ("f", "Enter focus mode"),
-                ("Esc", "Exit current mode / Close overlay"),
-            ]),
+            (
+                "General",
+                vec![
+                    ("q", "Quit Orbit"),
+                    ("?", "Toggle help"),
+                    ("r", "Refresh project detection"),
+                    ("Tab", "Cycle panel focus"),
+                ],
+            ),
+            (
+                "Navigation",
+                vec![
+                    ("↑/k", "Move up"),
+                    ("↓/j", "Move down"),
+                    ("Enter", "Execute selected action"),
+                    ("Space", "Open command palette"),
+                ],
+            ),
+            (
+                "Panels",
+                vec![
+                    ("d", "Toggle Docker panel"),
+                    ("p", "Toggle Ports panel"),
+                    ("e", "Toggle Environment panel"),
+                ],
+            ),
+            (
+                "Modes",
+                vec![
+                    ("f", "Enter focus mode"),
+                    ("Esc", "Exit current mode / Close overlay"),
+                ],
+            ),
         ];
 
         let mut y = inner.y;
@@ -81,10 +96,7 @@ impl<'a> Widget for HelpOverlay<'a> {
                 }
 
                 let line = Line::from(vec![
-                    Span::styled(
-                        format!("  {:>8}  ", key),
-                        self.theme.styles.keybind_key,
-                    ),
+                    Span::styled(format!("  {:>8}  ", key), self.theme.styles.keybind_key),
                     Span::styled(*desc, self.theme.styles.keybind),
                 ]);
                 buf.set_line(inner.x + 1, y, &line, inner.width.saturating_sub(2));
@@ -100,11 +112,6 @@ impl<'a> Widget for HelpOverlay<'a> {
             " Press Esc or ? to close ",
             Style::default().fg(self.theme.colors.fg_muted),
         );
-        buf.set_span(
-            area.x + (area.width - 25) / 2,
-            footer_y,
-            &footer,
-            25,
-        );
+        buf.set_span(area.x + (area.width - 25) / 2, footer_y, &footer, 25);
     }
 }

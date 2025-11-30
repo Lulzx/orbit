@@ -59,14 +59,22 @@ impl<'a> Widget for OutputPanel<'a> {
 
         let visible_lines = inner.height as usize;
         let total_lines = output.lines.len();
-        
+
         let start = if output.auto_scroll {
             total_lines.saturating_sub(visible_lines)
         } else {
-            output.scroll_offset.min(total_lines.saturating_sub(visible_lines))
+            output
+                .scroll_offset
+                .min(total_lines.saturating_sub(visible_lines))
         };
 
-        for (i, line) in output.lines.iter().skip(start).take(visible_lines).enumerate() {
+        for (i, line) in output
+            .lines
+            .iter()
+            .skip(start)
+            .take(visible_lines)
+            .enumerate()
+        {
             let style = match line.stream {
                 OutputStream::Stdout => Style::default().fg(self.theme.colors.fg_primary),
                 OutputStream::Stderr => Style::default().fg(self.theme.colors.error),

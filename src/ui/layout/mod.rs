@@ -24,7 +24,7 @@ impl LayoutManager {
     /// Compute all panel rects based on terminal size and config
     pub fn compute(area: Rect, state: &AppState) -> ComputedLayout {
         let config = &state.layout;
-        
+
         match config.preset {
             LayoutPreset::Standard => Self::standard_layout(area, config),
             LayoutPreset::Compact => Self::compact_layout(area, config),
@@ -39,9 +39,9 @@ impl LayoutManager {
         let main_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(1),  // Header
-                Constraint::Min(10),    // Body
-                Constraint::Length(1),  // Footer
+                Constraint::Length(1), // Header
+                Constraint::Min(10),   // Body
+                Constraint::Length(1), // Footer
             ])
             .split(area);
 
@@ -52,10 +52,7 @@ impl LayoutManager {
         let sidebar_width = config.sidebar_width_percent.clamp(20, 50);
         let body_chunks = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Percentage(sidebar_width),
-                Constraint::Min(40),
-            ])
+            .constraints([Constraint::Percentage(sidebar_width), Constraint::Min(40)])
             .split(main_chunks[1]);
 
         // Sidebar panels
@@ -67,7 +64,7 @@ impl LayoutManager {
             sidebar_constraints.push(Constraint::Length(8));
         }
         sidebar_constraints.push(Constraint::Length(5)); // System metrics
-        sidebar_constraints.push(Constraint::Min(0));    // Spacer
+        sidebar_constraints.push(Constraint::Min(0)); // Spacer
 
         let sidebar_chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -130,10 +127,7 @@ impl LayoutManager {
 
         let body_chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(10),
-                Constraint::Min(5),
-            ])
+            .constraints([Constraint::Length(10), Constraint::Min(5)])
             .split(main_chunks[1]);
 
         ComputedLayout {
@@ -189,10 +183,7 @@ impl LayoutManager {
         // Middle: Actions, Output
         let middle_chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(12),
-                Constraint::Min(5),
-            ])
+            .constraints([Constraint::Length(12), Constraint::Min(5)])
             .split(body_chunks[1]);
 
         ComputedLayout {
