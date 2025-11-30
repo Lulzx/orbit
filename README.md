@@ -26,7 +26,7 @@ Orbit is a modern terminal user interface (TUI) application designed to streamli
 
 ```bash
 # Clone and install
-git clone https://github.com/yourusername/orbit.git
+git clone https://github.com/lulzx/orbit.git
 cd orbit
 ./install.sh
 ```
